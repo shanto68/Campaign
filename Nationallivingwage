@@ -1,0 +1,463 @@
+# ==== job.py ====
+import time
+import random
+import threading
+from selenium.webdriver.common.by import By
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
+from selenium.webdriver.common.action_chains import ActionChains
+from selenium.webdriver.common.keys import Keys
+# Configuration
+MASTER_URL = "https://sites.google.com/view/shantosbebs/home"
+MIN_STAY_TIME = 80
+MAX_STAY_TIME = 150
+# Persistent cookie handling thread
+def cookie_thread(driver, stop_event):
+    """Continuously monitors and handles cookies/popups throughout the session"""
+    while not stop_event.is_set():
+        try:
+            # Accept cookies if found
+            accept_cookies(driver)
+            
+            # Close any popups
+            close_popups(driver)
+            
+            # Random delay between checks (5-15 seconds)
+            time.sleep(random.uniform(5, 15))
+        except Exception as e:
+            print(f"⚠️ Cookie thread error: {str(e)[:100]}")
+def human_like_scroll(driver, total_time):
+    """Enhanced human-like scrolling with 25+ patterns"""
+    print(f"📜 Starting advanced human-like scroll for {total_time} seconds...")
+    actions = ActionChains(driver)
+    start_time = time.time()
+    elapsed = 0
+    
+    # Define 25+ scrolling patterns with weights
+    SCROLL_PATTERNS = [
+        ("smooth", 0.15, lambda: random.randint(200, 800)),
+        ("hesitate", 0.08, None),
+        ("slow_jump", 0.10, lambda: random.randint(300, 1000)),
+        ("page", 0.05, None),
+        ("quick_jump", 0.07, lambda: random.randint(500, 1200)),
+        ("back_and_forth", 0.06, None),
+        ("random_walk", 0.09, None),
+        ("long_hesitate", 0.04, None),
+        ("scroll_to_bottom", 0.03, None),
+        ("scroll_to_top", 0.03, None),
+        ("smooth_medium", 0.06, lambda: random.randint(150, 600)),
+        ("hesitate_short", 0.05, None),
+        ("slow_smooth", 0.06, lambda: random.randint(100, 400)),
+        ("page_up", 0.03, None),
+        ("quick_up_jump", 0.04, lambda: -random.randint(400, 900)),
+        ("back_and_forth_long", 0.04, None),
+        ("random_walk_long", 0.05, None),
+        ("hesitate_reading", 0.04, None),
+        ("half_page_down", 0.03, None),
+        ("half_page_up", 0.02, None),
+        ("quarter_page_down", 0.03, None),
+        ("quarter_page_up", 0.02, None),
+        ("flick_down", 0.02, lambda: random.randint(800, 1500)),
+        ("flick_up", 0.02, lambda: -random.randint(700, 1300)),
+        ("random_mouse_move", 0.03, None),
+    ]
+    
+    while elapsed < total_time:
+        remaining = total_time - elapsed
+        print(f"⏳ Scroll progress: {elapsed}/{total_time} seconds ({(elapsed/total_time)*100:.1f}%)")
+        
+        # Select random pattern based on weight
+        pattern = random.choices(
+            SCROLL_PATTERNS, 
+            weights=[p[1] for p in SCROLL_PATTERNS]
+        )[0]
+        
+        direction = random.choice([1, -1])
+        pattern_name = pattern[0]
+        
+        try:
+            if pattern_name == "smooth":
+                distance = pattern[2]() * direction
+                driver.execute_script(f"window.scrollBy(0, {distance})")
+                delay = random.uniform(0.8, 1.5)
+            
+            elif pattern_name == "hesitate":
+                delay = random.uniform(1.5, 3)
+            
+            elif pattern_name == "slow_jump":
+                distance = pattern[2]() * direction
+                driver.execute_script(f"window.scrollBy(0, {distance})")
+                delay = random.uniform(2.0, 3.5)
+            
+            elif pattern_name == "page":
+                key = Keys.PAGE_DOWN if direction == 1 else Keys.PAGE_UP
+                actions.send_keys(key).perform()
+                delay = random.uniform(2.0, 4.0)
+            
+            elif pattern_name == "quick_jump":
+                distance = pattern[2]() * direction
+                driver.execute_script(f"window.scrollBy(0, {distance})")
+                delay = random.uniform(0.3, 0.7)
+            
+            elif pattern_name == "back_and_forth":
+                # Scroll sequence: down -> up -> down
+                driver.execute_script("window.scrollBy(0, 400)")
+                time.sleep(random.uniform(0.5, 1.0))
+                driver.execute_script("window.scrollBy(0, -200)")
+                time.sleep(random.uniform(0.5, 1.0))
+                driver.execute_script("window.scrollBy(0, 300)")
+                delay = random.uniform(1.0, 1.5)
+            
+            elif pattern_name == "random_walk":
+                total_delay = 0
+                for _ in range(random.randint(2, 5)):
+                    distance = random.randint(100, 400) * random.choice([1, -1])
+                    driver.execute_script(f"window.scrollBy(0, {distance})")
+                    d = random.uniform(0.3, 0.7)
+                    time.sleep(d)
+                    total_delay += d
+                delay = total_delay
+            
+            elif pattern_name == "long_hesitate":
+                delay = random.uniform(3, 5)
+            
+            elif pattern_name == "scroll_to_bottom":
+                driver.execute_script("window.scrollTo(0, document.body.scrollHeight)")
+                delay = random.uniform(2.0, 4.0)
+            
+            elif pattern_name == "scroll_to_top":
+                driver.execute_script("window.scrollTo(0, 0)")
+                delay = random.uniform(2.0, 4.0)
+            
+            elif pattern_name == "smooth_medium":
+                distance = pattern[2]() * direction
+                driver.execute_script(f"window.scrollBy(0, {distance})")
+                delay = random.uniform(1.0, 2.0)
+            
+            elif pattern_name == "hesitate_short":
+                delay = random.uniform(0.8, 1.8)
+            
+            elif pattern_name == "slow_smooth":
+                distance = pattern[2]() * direction
+                driver.execute_script(f"window.scrollBy(0, {distance})")
+                delay = random.uniform(1.5, 2.5)
+            
+            elif pattern_name == "page_up":
+                actions.send_keys(Keys.PAGE_UP).perform()
+                delay = random.uniform(2.0, 3.5)
+            
+            elif pattern_name == "quick_up_jump":
+                distance = pattern[2]()
+                driver.execute_script(f"window.scrollBy(0, {distance})")
+                delay = random.uniform(0.4, 0.9)
+            
+            elif pattern_name == "back_and_forth_long":
+                # Longer scroll sequence
+                for _ in range(3):
+                    distance = random.randint(300, 600) * random.choice([1, -1])
+                    driver.execute_script(f"window.scrollBy(0, {distance})")
+                    time.sleep(random.uniform(0.7, 1.2))
+                delay = random.uniform(1.5, 2.5)
+            
+            elif pattern_name == "random_walk_long":
+                total_delay = 0
+                for _ in range(random.randint(4, 7)):
+                    distance = random.randint(80, 250) * random.choice([1, -1])
+                    driver.execute_script(f"window.scrollBy(0, {distance})")
+                    d = random.uniform(0.2, 0.6)
+                    time.sleep(d)
+                    total_delay += d
+                delay = total_delay
+            
+            elif pattern_name == "hesitate_reading":
+                # Hesitate with small movements
+                delay = random.uniform(4, 7)
+                for _ in range(2):
+                    time.sleep(delay/3)
+                    driver.execute_script(f"window.scrollBy(0, {random.randint(50, 150)})")
+            
+            elif pattern_name == "half_page_down":
+                window_h = driver.execute_script("return window.innerHeight")
+                driver.execute_script(f"window.scrollBy(0, {window_h//2})")
+                delay = random.uniform(1.5, 2.5)
+            
+            elif pattern_name == "half_page_up":
+                window_h = driver.execute_script("return window.innerHeight")
+                driver.execute_script(f"window.scrollBy(0, {-window_h//2})")
+                delay = random.uniform(1.5, 2.5)
+            
+            elif pattern_name == "quarter_page_down":
+                window_h = driver.execute_script("return window.innerHeight")
+                driver.execute_script(f"window.scrollBy(0, {window_h//4})")
+                delay = random.uniform(1.0, 2.0)
+            
+            elif pattern_name == "quarter_page_up":
+                window_h = driver.execute_script("return window.innerHeight")
+                driver.execute_script(f"window.scrollBy(0, {-window_h//4})")
+                delay = random.uniform(1.0, 2.0)
+            
+            elif pattern_name == "flick_down":
+                distance = pattern[2]()
+                driver.execute_script(f"window.scrollBy(0, {distance})")
+                delay = random.uniform(0.1, 0.3)
+            
+            elif pattern_name == "flick_up":
+                distance = pattern[2]()
+                driver.execute_script(f"window.scrollBy(0, {distance})")
+                delay = random.uniform(0.1, 0.3)
+            
+            elif pattern_name == "random_mouse_move":
+                # Human-like mouse movement while scrolling
+                x_offset = random.randint(-50, 50)
+                y_offset = random.randint(-30, 30)
+                actions.move_by_offset(x_offset, y_offset).perform()
+                distance = random.randint(200, 600) * direction
+                driver.execute_script(f"window.scrollBy(0, {distance})")
+                delay = random.uniform(1.0, 2.0)
+            
+            # Execute the delay for all patterns
+            time.sleep(delay)
+            elapsed += delay
+            
+            # Debug print pattern
+            print(f"🌀 [{pattern_name}] +{delay:.1f}s")
+            
+        except Exception as e:
+            print(f"⚠️ Scroll error: {str(e)[:100]}")
+            delay = random.uniform(1.0, 2.0)
+            time.sleep(delay)
+            elapsed += delay
+def human_like_click(element):
+    try:
+        actions = ActionChains(element.parent)
+        actions.move_to_element(element).pause(random.uniform(0.5, 1.5))
+        actions.click().pause(random.uniform(0.2, 0.7))
+        actions.perform()
+        return True
+    except:
+        return False
+def click_element_if_exists(driver, selector, msg=""):
+    try:
+        element = driver.find_element(By.CSS_SELECTOR, selector)
+        if element.is_displayed():
+            human_like_click(element)
+            if msg: 
+                print(f"✅ {msg}")
+            return True
+    except:
+        pass
+    return False
+def accept_cookies(driver):
+    selectors = [
+        'button#cookie-ok', 
+        'a[aria-label="Accept cookies"]',
+        'button[class*="cookie-accept"]', 
+        'div[class*="cookie"] button',
+        'a#cookieChoiceDismiss.cookie-choices-button', 
+        'a.cookie-choices-button'
+    ]
+    for selector in selectors:
+        if click_element_if_exists(driver, selector, f"Cookie accepted: {selector}"):
+            return True
+    return False
+def close_popups(driver):
+    print("❌ Checking for popups...")
+    selectors = [
+        'button.close', 
+        'div.modal-close', 
+        'a.popup-close', 
+        'button[aria-label="Close"]'
+    ]
+    for selector in selectors:
+        try:
+            elements = driver.find_elements(By.CSS_SELECTOR, selector)
+            for el in elements:
+                if el.is_displayed():
+                    human_like_click(el)
+                    print(f"❌ Popup closed: {selector}")
+        except:
+            continue
+def try_accept_consents(driver):
+    print("🧐 Checking consent buttons...")
+    time.sleep(random.randint(4, 13))
+    clicked = click_element_if_exists(
+        driver, 
+        "button.fc-button.fc-cta-consent.fc-primary-button", 
+        "Clicked consent button"
+    )
+    time.sleep(random.randint(4, 13))
+    accepted = accept_cookies(driver)
+    return clicked or accepted
+
+# New function to read article and select next link
+def read_article_and_select_next_link(driver, visited_links):
+    """Read the article completely and select a related post link"""
+    try:
+        # 1. Wait for the blog post to fully load
+        print("⏳ Waiting for blog post to fully load...")
+        time.sleep(random.uniform(3, 6))
+        
+        # 2. Scroll slowly through the article to simulate reading
+        print("📖 Reading article with human-like scrolling...")
+        scroll_height = driver.execute_script("return document.body.scrollHeight")
+        viewport_height = driver.execute_script("return window.innerHeight")
+        current_position = 0
+        
+        # Scroll in increments with pauses to simulate reading
+        while current_position < scroll_height:
+            # Scroll by a small portion of the viewport
+            scroll_increment = random.randint(viewport_height // 4, viewport_height // 2)
+            driver.execute_script(f"window.scrollBy(0, {scroll_increment})")
+            current_position += scroll_increment
+            
+            # Pause between scrolls to simulate reading
+            time.sleep(random.uniform(1.5, 3.5))
+            
+            # Randomly scroll back up a bit to simulate re-reading
+            if random.random() < 0.2:  # 20% chance
+                scroll_back = random.randint(50, 200)
+                driver.execute_script(f"window.scrollBy(0, -{scroll_back})")
+                time.sleep(random.uniform(1.0, 2.5))
+                driver.execute_script(f"window.scrollBy(0, {scroll_back})")
+        
+        # 3. Move to the "Related Posts" section
+        print("🔍 Looking for Related Posts section...")
+        try:
+            related_section = driver.find_element(By.CSS_SELECTOR, ".RelatedPosts")
+            driver.execute_script("arguments[0].scrollIntoView({behavior: 'smooth'});", related_section)
+            print("✅ Found Related Posts section")
+        except:
+            print("⚠️ RelatedPosts section not found, trying alternative...")
+            # Fallback: Look for any section with "related" in the class
+            try:
+                related_section = driver.find_element(By.CSS_SELECTOR, "[class*='related']")
+                driver.execute_script("arguments[0].scrollIntoView({behavior: 'smooth'});", related_section)
+                print("✅ Found alternative related section")
+            except:
+                print("❌ No related posts section found")
+                return None
+        
+        # 4. Wait 2-3 seconds after reaching the related post section
+        time.sleep(random.uniform(2, 3))
+        
+        # 5. Count how many related post links are available
+        try:
+            post_links = related_section.find_elements(By.CSS_SELECTOR, ".posts a")
+            print(f"🔗 Found {len(post_links)} related post links")
+        except:
+            print("⚠️ No related post links found")
+            return None
+        
+        # 6. Log the count of related posts (already done above)
+        
+        # 7. Hover over 2-3 different related post links
+        actions = ActionChains(driver)
+        hover_count = min(3, len(post_links))
+        hover_links = random.sample(post_links, hover_count)
+        
+        print(f"🖱️ Hovering over {hover_count} random related post links...")
+        for link in hover_links:
+            try:
+                actions.move_to_element(link).pause(random.uniform(0.5, 1.5))
+                actions.perform()
+                time.sleep(random.uniform(0.5, 1.5))
+            except:
+                continue
+        
+        # 8. Select a random link that hasn't been visited before
+        unvisited_links = []
+        for link in post_links:
+            href = link.get_attribute("href")
+            if href and href not in visited_links:
+                unvisited_links.append(href)
+        
+        if not unvisited_links:
+            print("❌ No unvisited related posts available")
+            return None
+        
+        # 9. Randomly select one unvisited link
+        next_link = random.choice(unvisited_links)
+        print(f"➡️ Selected next link: {next_link}")
+        return next_link
+        
+    except Exception as e:
+        print(f"⚠️ Error in read_article_and_select_next_link: {str(e)[:100]}")
+        return None
+
+def run_job(driver, session_pages):
+    # Start cookie thread
+    stop_event = threading.Event()
+    cookie_thread_instance = threading.Thread(
+        target=cookie_thread, 
+        args=(driver, stop_event),
+        daemon=True
+    )
+    cookie_thread_instance.start()
+    
+    try:
+        # Start at master URL
+        print(f"🌍 Navigating to master: {MASTER_URL}")
+        driver.get(MASTER_URL)
+        time.sleep(random.uniform(4.5, 7.5))
+        
+        # Find game/article links from multiple div classes
+        div_selectors = [
+            'div.tyJCtd.baZpAe',
+            'div.tyJCtd.biZpAe',
+            'div.tkJCtd.baZpAe'
+        ]
+        game_links = []
+        try:
+            for selector in div_selectors:
+                divs = driver.find_elements(By.CSS_SELECTOR, selector)
+                for div in divs:
+                    links = div.find_elements(By.TAG_NAME, 'a')
+                    for link in links:
+                        href = link.get_attribute("href")
+                        if href and href.startswith("http") and href not in game_links:
+                            game_links.append(href)
+        except Exception as e:
+            print(f"⚠️ Error while finding links: {str(e)[:100]}")
+        if not game_links:
+            print("❌ No game/article links found")
+            return False
+        
+        print(f"🔗 Found {len(game_links)} game links")
+        current_url = random.choice(game_links)
+        print(f"➡️ Navigating to game: {current_url}")
+        driver.get(current_url)
+        
+        # Initial consent handling
+        try_accept_consents(driver)
+        
+        # Track visited links
+        visited_links = set()
+        visited_links.add(driver.current_url)
+        
+        # Session loop
+        for page_num in range(1, session_pages + 1):
+            print(f"\n📄 Session page {page_num}/{session_pages}")
+            time.sleep(random.uniform(3.5, 6.5))
+            
+            # Read the article and select next link
+            next_link = read_article_and_select_next_link(driver, visited_links)
+            
+            if not next_link:
+                print("❌ No next link found. Ending session.")
+                break
+            
+            # Navigate to next page if not the last iteration
+            if page_num < session_pages:
+                print(f"➡️ Navigating to next page: {next_link}")
+                driver.get(next_link)
+                visited_links.add(next_link)
+            
+        print("🏁 Session completed successfully")
+        return True
+        
+    except Exception as e:
+        print(f"💥 Job error: {str(e)[:100]}")
+        return False
+    finally:
+        stop_event.set()
+        cookie_thread_instance.join(timeout=1.0)
