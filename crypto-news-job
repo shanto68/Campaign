@@ -9,7 +9,7 @@ from selenium.webdriver.common.action_chains import ActionChains
 from selenium.webdriver.common.keys import Keys
 
 # Configuration
-MASTER_URL = "https://sites.google.com/view/aaroonline/home"
+MASTER_URL = "https://sites.google.com/view/crypto-news90/home"
 MIN_STAY_TIME = 80
 MAX_STAY_TIME = 150
 REPORT_URL = "https://organic-traffic.ct.ws/index.php"
