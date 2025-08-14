@@ -1,0 +1,89 @@
+
+
+
+sudo apt update && sudo apt upgrade -y
+
+sudo apt install gedit -y
+
+
+
+sudo apt install software-properties-common -y
+sudo add-apt-repository ppa:deadsnakes/ppa -y
+sudo apt update
+sudo apt install python3.10 python3.10-distutils python3.10-venv -y
+
+
+
+curl -sS https://bootstrap.pypa.io/get-pip.py | python3.10
+
+
+
+wget https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb
+sudo apt install ./google-chrome-stable_current_amd64.deb -y
+
+
+
+python3.10 -m pip install --upgrade pip
+python3.10 -m pip install undetected-chromedriver selenium requests[socks] fake_useragent
+
+
+
+google-chrome --no-sandbox
+
+ 
+
+
+sudo apt install tor -y
+
+
+
+
+mkdir -p ~/tor_bots
+cd ~/tor_bots
+
+
+
+---------------------------------------------------
+
+for i in $(seq 1 9); do
+  mkdir -p tor_data$i
+  cat <<EOF > torrc$i
+SocksPort 905$i
+DataDirectory ./tor_data$i
+ControlPort 90$i$i
+HashedControlPassword 16:1234567890ABCDEF1234567890ABCDEF1234567890
+EOF
+done
+
+
+
+cd ~/tor_bots
+for i in $(seq 1 9); do
+  tor -f torrc$i > tor_log$i.txt 2>&1 &
+done
+
+
+
+---------------------------------------------------------
+
+
+ps aux | grep tor
+
+
+python3.10 -m pip install --upgrade pip
+python3.10 -m pip install undetected-chromedriver selenium requests[socks] fake_useragent
+
+
+tor --hash-password 
+
+""
+
+google-chrome --no-sandbox
+
+ 
+tor &
+
+pkill tor 
+
+
+
