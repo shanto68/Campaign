@@ -277,7 +277,7 @@ def main_bot_loop():
                 continue
                 
             # Run job from external file
-            pages = random.randint(4, 7)
+            pages = random.randint(2, 7)
             print(f"🚀 Starting new session ({pages} pages)")
             
             # Execute job with ad checking
@@ -293,7 +293,7 @@ def main_bot_loop():
             profile_path = None
             
             if success:
-                countdown(random.randint(120, 300), "Waiting between sessions")
+                countdown(random.randint(10, 20), "Waiting between sessions")
             else:
                 countdown(random.randint(10, 30), "Restarting after job failure")
                 
