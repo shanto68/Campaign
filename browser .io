@@ -1,4 +1,4 @@
-# === Tor Bot Multi Instance: bot1.py ===
+# === Tor Bot Multi Instance: bot.py ===
 
 import threading
 import socket
@@ -9,23 +9,36 @@ from selenium.webdriver.firefox.service import Service
 from selenium.webdriver.support.ui import WebDriverWait
 
 # ====== Configuration =======
-SOCKS_PORT = 9151
-CONTROL_PORT = 9052
-TOR_PASSWORD = "shanto353"
+SOCKS_PORT = 9051
+CONTROL_PORT = 9011
+TOR_PASSWORD = "bot"
 
 site_link = "https://www.browserless.io/"
 paste_link = "https://www.aaro.online/"
-geckodriver_path = os.path.join(os.getcwd(), "geckodriver.exe")
+geckodriver_path = os.path.join(os.getcwd(), "geckodriver")
 
 user_agents = [
     "Mozilla/5.0 (Linux; Android 12; SM-G991B)...",
     "Mozilla/5.0 (Linux; Android 11; Pixel 5)...",
     "Mozilla/5.0 (iPhone; CPU iPhone OS 16_6)..."
 ]
-ua = random.choice(user_agents)
 
 ip_change_count = 0
 seen_ips = set()
+ip_file = "ip.txt"
+
+# ====== IP File Functions =======
+def load_seen_ips():
+    global seen_ips
+    if os.path.exists(ip_file):
+        with open(ip_file, "r") as f:
+            seen_ips = set(line.strip() for line in f if line.strip())
+    else:
+        open(ip_file, "w").close()  # create empty file if not exists
+
+def save_ip(ip):
+    with open(ip_file, "a") as f:
+        f.write(ip + "\n")
 
 # ====== IP Functions =======
 def get_current_ip():
@@ -44,16 +57,25 @@ def new_tor_ip(password=TOR_PASSWORD):
         s = socket.create_connection(("127.0.0.1", CONTROL_PORT))
         s.send(f'AUTHENTICATE "{password}"\r\n'.encode())
         if b"250 OK" in s.recv(1024):
-            s.send(b'SIGNAL NEWNYM\r\n')
-            s.recv(1024)
-            time.sleep(3)
-            new_ip = get_current_ip()
-            if new_ip not in seen_ips:
-                seen_ips.add(new_ip)
-                ip_change_count += 1
-                print(f"\n🔄 [IP Changed] {new_ip} | Total Unique: {ip_change_count}")
-            else:
-                print(f"\n⚠️ IP did not change (Still: {new_ip})")
+            while True:
+                s.send(b'SIGNAL NEWNYM\r\n')
+                s.recv(1024)
+                time.sleep(3)
+                new_ip = get_current_ip()
+                if new_ip == "❌":
+                    print("❌ IP detect failed, retrying...")
+                    continue
+
+                if new_ip not in seen_ips:
+                    seen_ips.add(new_ip)
+                    save_ip(new_ip)
+                    ip_change_count += 1
+                    print(f"\n🔄 [New Unique IP] {new_ip} | Total Unique: {ip_change_count}")
+                    break
+                else:
+                    print(f"⚠️ Duplicate IP {new_ip}, retrying...")
+                    time.sleep(2)
+                    continue
         else:
             print("❌ Tor Auth Failed")
         s.close()
@@ -76,16 +98,13 @@ def countdown(seconds):
 def init_driver():
     options = webdriver.FirefoxOptions()
     # options.add_argument("-headless")  # Optional: Headless Mode
-    options.set_preference("general.useragent.override", ua)
+    options.set_preference("general.useragent.override", random.choice(user_agents))
     options.set_preference("network.proxy.type", 1)
     options.set_preference("network.proxy.socks", "127.0.0.1")
     options.set_preference("network.proxy.socks_port", SOCKS_PORT)
     options.set_preference("network.proxy.socks_version", 5)
     options.set_preference("network.proxy.no_proxies_on", "")
     return webdriver.Firefox(service=Service(geckodriver_path), options=options)
-
-driver = init_driver()
-wait = WebDriverWait(driver, 30)
 
 def is_page_loaded():
     return driver.execute_script("return document.readyState") == "complete"
@@ -142,10 +161,14 @@ def wait_until_ready_or_refresh(timeout=5):
     return False
 
 # ====== Start Background IP Thread =======
+load_seen_ips()   # Load IP history from ip.txt
 t = threading.Thread(target=ip_changer_loop, args=(300,), daemon=True)
 t.start()
 
 # ====== Main Loop =======
+driver = init_driver()
+wait = WebDriverWait(driver, 30)
+
 while True:
     try:
         print("🌍 Opening site...")
