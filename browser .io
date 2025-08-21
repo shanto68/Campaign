@@ -26,6 +26,7 @@ user_agents = [
 ip_change_count = 0
 seen_ips = set()
 ip_file = "ip.txt"
+retry_fail_count = 0
 
 # ====== IP File Functions =======
 def load_seen_ips():
@@ -34,7 +35,7 @@ def load_seen_ips():
         with open(ip_file, "r") as f:
             seen_ips = set(line.strip() for line in f if line.strip())
     else:
-        open(ip_file, "w").close()  # create empty file if not exists
+        open(ip_file, "w").close()
 
 def save_ip(ip):
     with open(ip_file, "a") as f:
@@ -51,7 +52,20 @@ def get_current_ip():
     except:
         return "❌"
 
-def new_tor_ip(password=TOR_PASSWORD):
+# ====== Browser Reset =======
+def reset_browser():
+    global driver, wait
+    try:
+        driver.quit()
+    except:
+        pass
+    countdown(2)
+    driver = init_driver()
+    wait = WebDriverWait(driver, 30)
+    print("🆕 New browser session started with fresh cache & IP")
+    countdown(3)
+
+def new_tor_ip(password=TOR_PASSWORD, force_reset=True):
     global ip_change_count, seen_ips
     try:
         s = socket.create_connection(("127.0.0.1", CONTROL_PORT))
@@ -71,6 +85,10 @@ def new_tor_ip(password=TOR_PASSWORD):
                     save_ip(new_ip)
                     ip_change_count += 1
                     print(f"\n🔄 [New Unique IP] {new_ip} | Total Unique: {ip_change_count}")
+
+                    if force_reset:
+                        reset_browser()
+
                     break
                 else:
                     print(f"⚠️ Duplicate IP {new_ip}, retrying...")
@@ -97,7 +115,7 @@ def countdown(seconds):
 
 def init_driver():
     options = webdriver.FirefoxOptions()
-    # options.add_argument("-headless")  # Optional: Headless Mode
+    # options.add_argument("-headless")  # Optional
     options.set_preference("general.useragent.override", random.choice(user_agents))
     options.set_preference("network.proxy.type", 1)
     options.set_preference("network.proxy.socks", "127.0.0.1")
@@ -161,7 +179,7 @@ def wait_until_ready_or_refresh(timeout=5):
     return False
 
 # ====== Start Background IP Thread =======
-load_seen_ips()   # Load IP history from ip.txt
+load_seen_ips()
 t = threading.Thread(target=ip_changer_loop, args=(300,), daemon=True)
 t.start()
 
@@ -214,7 +232,13 @@ while True:
                     countdown(45)
                     break
                 else:
-                    print("🔁 Not loading, retrying")
+                    retry_fail_count += 1
+                    print(f"🔁 Not running, retrying ({retry_fail_count}/6)")
+
+                    if retry_fail_count >= 6:
+                        print("❌ Too many retries, forcing new IP + browser reset...")
+                        new_tor_ip(force_reset=True)
+                        retry_fail_count = 0
                     countdown(2)
                     break
 
@@ -223,7 +247,6 @@ while True:
         try: driver.quit()
         except: pass
         time.sleep(5)
-        driver = init_driver()
-        wait = WebDriverWait(driver, 30)
+        reset_browser()
         countdown(5)
         continue
