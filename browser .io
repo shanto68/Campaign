@@ -26,7 +26,10 @@ user_agents = [
 ip_change_count = 0
 seen_ips = set()
 ip_file = "ip.txt"
-retry_fail_count = 0
+
+# Retry Counter
+retry_counter = 0
+MAX_RETRIES = 5
 
 # ====== IP File Functions =======
 def load_seen_ips():
@@ -35,7 +38,7 @@ def load_seen_ips():
         with open(ip_file, "r") as f:
             seen_ips = set(line.strip() for line in f if line.strip())
     else:
-        open(ip_file, "w").close()
+        open(ip_file, "w").close()  # create empty file if not exists
 
 def save_ip(ip):
     with open(ip_file, "a") as f:
@@ -52,20 +55,7 @@ def get_current_ip():
     except:
         return "❌"
 
-# ====== Browser Reset =======
-def reset_browser():
-    global driver, wait
-    try:
-        driver.quit()
-    except:
-        pass
-    countdown(2)
-    driver = init_driver()
-    wait = WebDriverWait(driver, 30)
-    print("🆕 New browser session started with fresh cache & IP")
-    countdown(3)
-
-def new_tor_ip(password=TOR_PASSWORD, force_reset=True):
+def new_tor_ip(password=TOR_PASSWORD):
     global ip_change_count, seen_ips
     try:
         s = socket.create_connection(("127.0.0.1", CONTROL_PORT))
@@ -85,10 +75,6 @@ def new_tor_ip(password=TOR_PASSWORD, force_reset=True):
                     save_ip(new_ip)
                     ip_change_count += 1
                     print(f"\n🔄 [New Unique IP] {new_ip} | Total Unique: {ip_change_count}")
-
-                    if force_reset:
-                        reset_browser()
-
                     break
                 else:
                     print(f"⚠️ Duplicate IP {new_ip}, retrying...")
@@ -115,7 +101,7 @@ def countdown(seconds):
 
 def init_driver():
     options = webdriver.FirefoxOptions()
-    # options.add_argument("-headless")  # Optional
+    # options.add_argument("-headless")  # Optional: Headless Mode
     options.set_preference("general.useragent.override", random.choice(user_agents))
     options.set_preference("network.proxy.type", 1)
     options.set_preference("network.proxy.socks", "127.0.0.1")
@@ -179,7 +165,7 @@ def wait_until_ready_or_refresh(timeout=5):
     return False
 
 # ====== Start Background IP Thread =======
-load_seen_ips()
+load_seen_ips()   # Load IP history from ip.txt
 t = threading.Thread(target=ip_changer_loop, args=(300,), daemon=True)
 t.start()
 
@@ -230,16 +216,17 @@ while True:
                 if "snapshot-button-loading" in get_run_button_class():
                     print("⏳ Loading started... waiting")
                     countdown(45)
+                    retry_counter = 0   # Reset on success
                     break
                 else:
-                    retry_fail_count += 1
-                    print(f"🔁 Not running, retrying ({retry_fail_count}/6)")
-
-                    if retry_fail_count >= 6:
-                        print("❌ Too many retries, forcing new IP + browser reset...")
-                        new_tor_ip(force_reset=True)
-                        retry_fail_count = 0
+                    retry_counter += 1
+                    print(f"🔁 Not running, retrying... ({retry_counter}/{MAX_RETRIES})")
                     countdown(2)
+
+                    if retry_counter >= MAX_RETRIES:
+                        print("⚠️ Too many retries, changing IP...")
+                        new_tor_ip()
+                        retry_counter = 0
                     break
 
     except Exception as e:
@@ -247,6 +234,7 @@ while True:
         try: driver.quit()
         except: pass
         time.sleep(5)
-        reset_browser()
+        driver = init_driver()
+        wait = WebDriverWait(driver, 30)
         countdown(5)
         continue
