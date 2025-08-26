@@ -14,7 +14,7 @@ CONTROL_PORT = 9011
 TOR_PASSWORD = "bot"
 
 site_link = "https://www.browserless.io/"
-paste_link = "https://www.aaro.online/"
+paste_link = "https://www.google.com/url?sa=t&source=web&rct=j&opi=89978449&url=https://www.aaro.online/2025/07/how-to-find-job-in-usa-ultimate-guide.html&ved=2ahUKEwin9NvPwaePAxU_RWwGHTSLPFMQFnoECCEQAQ&usg=AOvVaw0jX6ccFnxMiFS4x6qN-Hhj"
 geckodriver_path = os.path.join(os.getcwd(), "geckodriver")
 
 user_agents = [
